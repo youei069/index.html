@@ -9,6 +9,12 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         body {
             font-family: 'Arial', sans-serif;
@@ -174,6 +180,12 @@
                 inset 2px 2px 4px rgba(255,255,255,0.9),
                 0 2px 4px rgba(0,0,0,0.15);
             border: 1px solid rgba(180,200,230,0.5);
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+        }
+        
+        .bubble:focus {
+            outline: none;
         }
         .bubble::before {
             content: '';
@@ -321,7 +333,7 @@
 <body>
     <div class="container">
         <h1>
-             無限プチプチ 
+            🎈 無限プチプチ 🎈
             <button class="fullscreen-btn" onclick="toggleFullscreen()" title="全画面表示">⛶</button>
         </h1>
         
