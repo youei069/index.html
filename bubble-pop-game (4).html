@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>無限プチプチ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        .fullscreen-btn {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            width: auto;
+        }
+        .fullscreen-btn:hover {
+            background: #f0f0f0;
+            transform: scale(1.1);
+        }
+        .fullscreen-mode {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 9999;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .fullscreen-mode .container {
+            max-width: 90vw;
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+        .mode-select {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .mode-btn {
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .mode-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .mode-btn.active {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        }
+        .difficulty-select {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .diff-btn {
+            padding: 10px;
+            background: #f0f0f0;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .diff-btn:hover {
+            background: #e0e0e0;
+        }
+        .diff-btn.active {
+            border-color: #667eea;
+            background: #e8f0ff;
+            color: #667eea;
+        }
+        .diff-btn.easy { color: #4ade80; }
+        .diff-btn.normal { color: #3b82f6; }
+        .diff-btn.hard { color: #f59e0b; }
+        .diff-btn.extreme { color: #ef4444; }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 10px;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 0.8em;
+            color: #666;
+        }
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .timer {
+            font-size: 2em;
+            color: #ff6b6b;
+        }
+        .bubble-wrap {
+            display: grid;
+            gap: 3px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, #e8f0ff 0%, #f5f8ff 100%);
+            border-radius: 10px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        .grid-6 { grid-template-columns: repeat(6, 1fr); }
+        .grid-8 { grid-template-columns: repeat(8, 1fr); }
+        .grid-10 { grid-template-columns: repeat(10, 1fr); }
+        .bubble {
+            aspect-ratio: 1;
+            background: radial-gradient(circle at 35% 35%, 
+                        rgba(255,255,255,0.95) 0%,
+                        rgba(200,220,255,0.8) 30%,
+                        rgba(180,210,255,0.7) 60%,
+                        rgba(160,200,250,0.6) 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+            box-shadow: 
+                inset -2px -2px 4px rgba(150,180,220,0.4),
+                inset 2px 2px 4px rgba(255,255,255,0.9),
+                0 2px 4px rgba(0,0,0,0.15);
+            border: 1px solid rgba(180,200,230,0.5);
+        }
+        .bubble::before {
+            content: '';
+            position: absolute;
+            top: 25%;
+            left: 25%;
+            width: 30%;
+            height: 30%;
+            background: radial-gradient(circle at 40% 40%, 
+                        rgba(255,255,255,0.9), 
+                        transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .bubble::after {
+            content: '';
+            position: absolute;
+            bottom: 20%;
+            right: 20%;
+            width: 20%;
+            height: 20%;
+            background: radial-gradient(circle, 
+                        rgba(255,255,255,0.6), 
+                        transparent 60%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .bubble:hover:not(.popped) {
+            transform: scale(1.05);
+            box-shadow: 
+                inset -2px -2px 4px rgba(150,180,220,0.5),
+                inset 2px 2px 4px rgba(255,255,255,1),
+                0 3px 6px rgba(0,0,0,0.2);
+        }
+        .bubble:active:not(.popped) {
+            transform: scale(0.95);
+        }
+        .bubble.popped {
+            background: linear-gradient(135deg, 
+                        rgba(230,235,245,0.3) 0%,
+                        rgba(220,230,245,0.5) 50%,
+                        rgba(210,225,240,0.3) 100%);
+            box-shadow: 
+                inset 0 1px 3px rgba(0,0,0,0.15),
+                inset 0 -1px 2px rgba(255,255,255,0.5);
+            cursor: default;
+            animation: pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 1px solid rgba(200,210,230,0.4);
+        }
+        .bubble.popped::before,
+        .bubble.popped::after {
+            display: none;
+        }
+        .bubble.target {
+            animation: pulse 0.8s infinite;
+            box-shadow: 
+                inset -2px -2px 4px rgba(150,180,220,0.4),
+                inset 2px 2px 4px rgba(255,255,255,0.9),
+                0 0 15px rgba(255, 107, 107, 0.8),
+                0 0 30px rgba(255, 107, 107, 0.4);
+        }
+        @keyframes pulse {
+            0%, 100% { 
+                transform: scale(1);
+                filter: brightness(1);
+            }
+            50% { 
+                transform: scale(1.1);
+                filter: brightness(1.2);
+            }
+        }
+        @keyframes pop {
+            0% { 
+                transform: scale(1); 
+            }
+            40% { 
+                transform: scale(1.15);
+                box-shadow: 
+                    inset 0 0 10px rgba(255,255,255,0.8),
+                    0 0 15px rgba(180,200,255,0.5);
+            }
+            100% { 
+                transform: scale(1);
+            }
+        }
+        .combo {
+            position: fixed;
+            font-size: 2em;
+            font-weight: bold;
+            color: #ff6b6b;
+            pointer-events: none;
+            animation: comboFloat 1s ease-out forwards;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            z-index: 1000;
+        }
+        @keyframes comboFloat {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-100px) scale(1.5);
+            }
+        }
+        .result {
+            text-align: center;
+            padding: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .result h2 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .result .time {
+            font-size: 3em;
+            font-weight: bold;
+            color: #ff6b6b;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            🎈 無限プチプチ 🎈
+            <button class="fullscreen-btn" onclick="toggleFullscreen()" title="全画面表示">⛶</button>
+        </h1>
+        
+        <div class="mode-select">
+            <button class="mode-btn active" onclick="setMode('free')">フリーモード</button>
+            <button class="mode-btn" onclick="setMode('timeattack')">タイムアタック</button>
+            <button class="mode-btn" onclick="setMode('reflex')">反射神経モード</button>
+            <button class="mode-btn" onclick="setMode('survival')">サバイバル</button>
+        </div>
+        
+        <div id="difficultySelect" class="difficulty-select hidden">
+            <button class="diff-btn easy active" onclick="setDifficulty('easy')">簡単<br>4×4</button>
+            <button class="diff-btn normal" onclick="setDifficulty('normal')">普通<br>6×6</button>
+            <button class="diff-btn hard" onclick="setDifficulty('hard')">難しい<br>8×8</button>
+            <button class="diff-btn extreme" onclick="setDifficulty('extreme')">鬼<br>10×10</button>
+        </div>
+        
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-label" id="statLabel1">潰した数</div>
+                <div class="stat-value" id="stat1">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label" id="statLabel2">コンボ</div>
+                <div class="stat-value" id="stat2">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label" id="statLabel3">最高記録</div>
+                <div class="stat-value" id="stat3">0</div>
+            </div>
+        </div>
+        
+        <div id="result" class="result hidden"></div>
+        
+        <div class="bubble-wrap grid-8" id="bubbleWrap"></div>
+        <button id="actionBtn" onclick="resetGame()">🔄 全部復活！</button>
+    </div>
+
+    <script>
+        let currentMode = 'free';
+        let currentDifficulty = 'easy';
+        let popCount = 0;
+        let currentCombo = 0;
+        let record = 0;
+        let comboTimer = null;
+        let startTime = null;
+        let timerInterval = null;
+        let targetBubbles = [];
+        let targetCount = 1;
+        let targetTimer = null;
+        let mistakes = 0;
+        
+        const difficulties = {
+            easy: { size: 4, count: 16 },
+            normal: { size: 6, count: 36 },
+            hard: { size: 8, count: 64 },
+            extreme: { size: 10, count: 100 }
+        };
+        
+        const reflexSettings = {
+            easy: { targets: 1, interval: 2000 },
+            normal: { targets: 2, interval: 1500 },
+            hard: { targets: 3, interval: 1000 },
+            extreme: { targets: 5, interval: 700 }
+        };
+
+        const popSounds = [
+            { freq: 180, noise: 1200, duration: 0.045, noiseMix: 0.4 },
+            { freq: 160, noise: 1100, duration: 0.050, noiseMix: 0.45 },
+            { freq: 200, noise: 1300, duration: 0.040, noiseMix: 0.38 },
+            { freq: 170, noise: 1250, duration: 0.048, noiseMix: 0.42 },
+            { freq: 190, noise: 1150, duration: 0.043, noiseMix: 0.41 }
+        ];
+        
+        let audioContext = null;
+        
+        function getAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            return audioContext;
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const diffSelect = document.getElementById('difficultySelect');
+            if (mode === 'timeattack' || mode === 'reflex') {
+                diffSelect.classList.remove('hidden');
+            } else {
+                diffSelect.classList.add('hidden');
+            }
+            
+            updateLabels();
+            resetGame();
+        }
+
+        function setDifficulty(diff) {
+            currentDifficulty = diff;
+            document.querySelectorAll('.diff-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            resetGame();
+        }
+
+        function updateLabels() {
+            const label1 = document.getElementById('statLabel1');
+            const label2 = document.getElementById('statLabel2');
+            const label3 = document.getElementById('statLabel3');
+            
+            if (currentMode === 'timeattack') {
+                label1.textContent = 'タイム';
+                label2.textContent = '残り';
+                label3.textContent = 'ベストタイム';
+            } else if (currentMode === 'reflex') {
+                label1.textContent = 'スコア';
+                label2.textContent = 'ミス';
+                label3.textContent = 'ベスト';
+            } else if (currentMode === 'survival') {
+                label1.textContent = 'スコア';
+                label2.textContent = 'ライフ';
+                label3.textContent = 'ベスト';
+            } else {
+                label1.textContent = '潰した数';
+                label2.textContent = 'コンボ';
+                label3.textContent = '最高記録';
+            }
+        }
+
+        function createBubbles() {
+            const wrap = document.getElementById('bubbleWrap');
+            wrap.innerHTML = '';
+            
+            let bubbleCount, gridClass;
+            
+            if (currentMode === 'timeattack' || currentMode === 'reflex') {
+                const diff = difficulties[currentDifficulty];
+                bubbleCount = diff.count;
+                gridClass = `grid-${diff.size}`;
+            } else {
+                bubbleCount = 64;
+                gridClass = 'grid-8';
+            }
+            
+            wrap.className = `bubble-wrap ${gridClass}`;
+            
+            for (let i = 0; i < bubbleCount; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                bubble.dataset.index = i;
+                bubble.onclick = (e) => popBubble(bubble, e);
+                wrap.appendChild(bubble);
+            }
+        }
+
+        function popBubble(bubble, e) {
+            if (bubble.classList.contains('popped')) return;
+            
+            if (currentMode === 'timeattack') {
+                handleTimeAttack(bubble, e);
+            } else if (currentMode === 'reflex') {
+                handleReflex(bubble, e);
+            } else if (currentMode === 'survival') {
+                handleSurvival(bubble, e);
+            } else {
+                handleFree(bubble, e);
+            }
+        }
+
+        function handleFree(bubble, e) {
+            bubble.classList.add('popped');
+            popCount++;
+            currentCombo++;
+            
+            if (currentCombo > record) {
+                record = currentCombo;
+                document.getElementById('stat3').textContent = record;
+            }
+            
+            document.getElementById('stat1').textContent = popCount;
+            document.getElementById('stat2').textContent = currentCombo;
+            
+            if (currentCombo > 1 && currentCombo % 5 === 0) {
+                showCombo(e.clientX, e.clientY, currentCombo);
+            }
+            
+            playPopSound();
+            
+            clearTimeout(comboTimer);
+            comboTimer = setTimeout(() => {
+                currentCombo = 0;
+                document.getElementById('stat2').textContent = currentCombo;
+            }, 1500);
+        }
+
+        function handleTimeAttack(bubble, e) {
+            if (!startTime) {
+                startTime = Date.now();
+                startTimer();
+            }
+            
+            bubble.classList.add('popped');
+            popCount++;
+            
+            const remaining = difficulties[currentDifficulty].count - popCount;
+            document.getElementById('stat2').textContent = remaining;
+            
+            playPopSound();
+            
+            if (remaining === 0) {
+                finishTimeAttack();
+            }
+        }
+
+        function handleReflex(bubble, e) {
+            const isTarget = bubble.classList.contains('target');
+            
+            if (isTarget) {
+                bubble.classList.remove('target');
+                bubble.classList.add('popped');
+                popCount++;
+                document.getElementById('stat1').textContent = popCount;
+                
+                if (popCount > record) {
+                    record = popCount;
+                    document.getElementById('stat3').textContent = record;
+                }
+                
+                playPopSound();
+                targetBubbles = targetBubbles.filter(b => b !== bubble);
+                
+                if (targetBubbles.length === 0) {
+                    clearTimeout(targetTimer);
+                    scheduleNextTarget();
+                }
+            } else if (!bubble.classList.contains('popped')) {
+                mistakes++;
+                document.getElementById('stat2').textContent = mistakes;
+                playErrorSound();
+            }
+        }
+
+        function handleSurvival(bubble, e) {
+            if (!startTime) {
+                startTime = Date.now();
+                mistakes = 3;
+                document.getElementById('stat2').textContent = mistakes;
+                scheduleNextTarget();
+            }
+            
+            const isTarget = bubble.classList.contains('target');
+            
+            if (isTarget) {
+                bubble.classList.remove('target');
+                bubble.classList.add('popped');
+                popCount++;
+                document.getElementById('stat1').textContent = popCount;
+                playPopSound();
+                targetBubbles = targetBubbles.filter(b => b !== bubble);
+            } else if (!bubble.classList.contains('popped')) {
+                mistakes--;
+                document.getElementById('stat2').textContent = mistakes;
+                playErrorSound();
+                
+                if (mistakes <= 0) {
+                    finishSurvival();
+                }
+            }
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                const seconds = (elapsed / 1000).toFixed(2);
+                document.getElementById('stat1').textContent = seconds + 's';
+            }, 10);
+        }
+
+        function finishTimeAttack() {
+            clearInterval(timerInterval);
+            const finalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+            
+            const bestTime = parseFloat(document.getElementById('stat3').textContent) || Infinity;
+            if (parseFloat(finalTime) < bestTime) {
+                document.getElementById('stat3').textContent = finalTime + 's';
+            }
+            
+            const result = document.getElementById('result');
+            result.innerHTML = `
+                <h2>🎉 クリア！</h2>
+                <div class="time">${finalTime}秒</div>
+            `;
+            result.classList.remove('hidden');
+            
+            document.getElementById('actionBtn').textContent = '🔄 もう一度';
+        }
+
+        function finishSurvival() {
+            clearTimeout(targetTimer);
+            
+            if (popCount > record) {
+                record = popCount;
+                document.getElementById('stat3').textContent = record;
+            }
+            
+            const result = document.getElementById('result');
+            result.innerHTML = `
+                <h2>💀 ゲームオーバー</h2>
+                <div class="time">スコア: ${popCount}</div>
+            `;
+            result.classList.remove('hidden');
+            
+            document.getElementById('actionBtn').textContent = '🔄 もう一度';
+        }
+
+        function scheduleNextTarget() {
+            const setting = reflexSettings[currentDifficulty];
+            const interval = currentMode === 'survival' ? Math.max(500, setting.interval - popCount * 10) : setting.interval;
+            
+            targetTimer = setTimeout(() => {
+                setRandomTargets(setting.targets);
+                
+                if (currentMode === 'survival') {
+                    setTimeout(() => {
+                        targetBubbles.forEach(b => {
+                            if (b.classList.contains('target')) {
+                                b.classList.remove('target');
+                                mistakes--;
+                                document.getElementById('stat2').textContent = mistakes;
+                                if (mistakes <= 0) {
+                                    finishSurvival();
+                                }
+                            }
+                        });
+                        targetBubbles = [];
+                        if (mistakes > 0) {
+                            scheduleNextTarget();
+                        }
+                    }, interval);
+                }
+            }, interval);
+        }
+
+        function setRandomTargets(count) {
+            const bubbles = Array.from(document.querySelectorAll('.bubble:not(.popped)'));
+            if (bubbles.length === 0) return;
+            
+            targetBubbles = [];
+            for (let i = 0; i < Math.min(count, bubbles.length); i++) {
+                const idx = Math.floor(Math.random() * bubbles.length);
+                const bubble = bubbles.splice(idx, 1)[0];
+                bubble.classList.add('target');
+                targetBubbles.push(bubble);
+            }
+        }
+
+        function showCombo(x, y, combo) {
+            const comboEl = document.createElement('div');
+            comboEl.className = 'combo';
+            comboEl.textContent = `${combo} COMBO!!`;
+            comboEl.style.left = x + 'px';
+            comboEl.style.top = y + 'px';
+            document.body.appendChild(comboEl);
+            
+            setTimeout(() => {
+                comboEl.remove();
+            }, 1000);
+        }
+
+        function playPopSound() {
+            try {
+                const audioCtx = getAudioContext();
+                
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                
+                const sound = popSounds[Math.floor(Math.random() * popSounds.length)];
+                const freqVariation = sound.freq + (Math.random() - 0.5) * 20;
+                const noiseVariation = sound.noise + (Math.random() - 0.5) * 200;
+                
+                const bufferSize = audioCtx.sampleRate * sound.duration;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                
+                for (let i = 0; i < bufferSize; i++) {
+                    const t = i / bufferSize;
+                    const envelope = Math.exp(-t * 25) * (1 - Math.exp(-t * 100));
+                    data[i] = (Math.random() * 2 - 1) * envelope;
+                }
+                
+                const noiseSource = audioCtx.createBufferSource();
+                noiseSource.buffer = buffer;
+                
+                const noiseFilter = audioCtx.createBiquadFilter();
+                noiseFilter.type = 'bandpass';
+                noiseFilter.frequency.value = noiseVariation;
+                noiseFilter.Q.value = 2;
+                
+                const noiseGain = audioCtx.createGain();
+                noiseGain.gain.value = sound.noiseMix;
+                
+                const oscillator = audioCtx.createOscillator();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(freqVariation, audioCtx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(freqVariation * 0.5, audioCtx.currentTime + sound.duration);
+                
+                const oscGain = audioCtx.createGain();
+                oscGain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                oscGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + sound.duration);
+                
+                const subOsc = audioCtx.createOscillator();
+                subOsc.type = 'sine';
+                subOsc.frequency.setValueAtTime(freqVariation * 0.6, audioCtx.currentTime);
+                subOsc.frequency.exponentialRampToValueAtTime(freqVariation * 0.3, audioCtx.currentTime + sound.duration);
+                
+                const subGain = audioCtx.createGain();
+                subGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                subGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + sound.duration);
+                
+                const masterGain = audioCtx.createGain();
+                masterGain.gain.value = 0.5;
+                
+                noiseSource.connect(noiseFilter);
+                noiseFilter.connect(noiseGain);
+                noiseGain.connect(masterGain);
+                oscillator.connect(oscGain);
+                oscGain.connect(masterGain);
+                subOsc.connect(subGain);
+                subGain.connect(masterGain);
+                masterGain.connect(audioCtx.destination);
+                
+                const now = audioCtx.currentTime;
+                noiseSource.start(now);
+                noiseSource.stop(now + sound.duration);
+                oscillator.start(now);
+                oscillator.stop(now + sound.duration);
+                subOsc.start(now);
+                subOsc.stop(now + sound.duration);
+            } catch (error) {
+                console.error('Audio playback error:', error);
+            }
+        }
+
+        function playErrorSound() {
+            try {
+                const audioCtx = getAudioContext();
+                
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+                oscillator.type = 'sawtooth';
+                
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.2);
+            } catch (error) {
+                console.error('Audio playback error:', error);
+            }
+        }
+
+        function resetGame() {
+            clearInterval(timerInterval);
+            clearTimeout(comboTimer);
+            clearTimeout(targetTimer);
+            
+            popCount = 0;
+            currentCombo = 0;
+            startTime = null;
+            targetBubbles = [];
+            mistakes = 0;
+            
+            document.getElementById('stat1').textContent = '0';
+            document.getElementById('stat2').textContent = '0';
+            document.getElementById('result').classList.add('hidden');
+            document.getElementById('actionBtn').textContent = currentMode === 'free' ? '🔄 全部復活！' : '🎮 スタート';
+            
+            updateLabels();
+            createBubbles();
+            
+            if (currentMode === 'reflex') {
+                scheduleNextTarget();
+            }
+        }
+
+        updateLabels();
+        createBubbles();
+    </script>
+</body>
+</html>
