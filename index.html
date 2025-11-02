@@ -128,28 +128,29 @@
         .diff-btn.hard { color: #f59e0b; }
         .diff-btn.extreme { color: #ef4444; }
         .stats {
-            display: flex;
-            justify-content: space-around;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
             margin-bottom: 20px;
             padding: 15px;
             background: #f0f0f0;
             border-radius: 10px;
         }
+        .stats.reflex-mode {
+            grid-template-columns: repeat(5, 1fr);
+        }
         .stat {
             text-align: center;
         }
         .stat-label {
-            font-size: 0.8em;
+            font-size: 0.7em;
             color: #666;
+            margin-bottom: 5px;
         }
         .stat-value {
-            font-size: 1.5em;
+            font-size: 1.2em;
             font-weight: bold;
             color: #667eea;
-        }
-        .timer {
-            font-size: 2em;
-            color: #ff6b6b;
         }
         .bubble-wrap {
             display: grid;
@@ -183,7 +184,6 @@
             -webkit-tap-highlight-color: transparent;
             outline: none;
         }
-        
         .bubble:focus {
             outline: none;
         }
@@ -351,7 +351,7 @@
             <button class="diff-btn extreme" onclick="setDifficulty('extreme')">鬼<br>10×10</button>
         </div>
         
-        <div class="stats">
+        <div class="stats" id="statsContainer">
             <div class="stat">
                 <div class="stat-label" id="statLabel1">潰した数</div>
                 <div class="stat-value" id="stat1">0</div>
@@ -363,6 +363,14 @@
             <div class="stat">
                 <div class="stat-label" id="statLabel3">最高記録</div>
                 <div class="stat-value" id="stat3">0</div>
+            </div>
+            <div class="stat" id="reactionStat" style="display: none;">
+                <div class="stat-label">反応時間</div>
+                <div class="stat-value" id="reactionTime">-</div>
+            </div>
+            <div class="stat" id="bestReactionStat" style="display: none;">
+                <div class="stat-label">最速</div>
+                <div class="stat-value" id="bestReaction">-</div>
             </div>
         </div>
         
@@ -382,9 +390,10 @@
         let startTime = null;
         let timerInterval = null;
         let targetBubbles = [];
-        let targetCount = 1;
         let targetTimer = null;
         let mistakes = 0;
+        let targetAppearTime = 0;
+        let bestReactionTime = Infinity;
         
         const difficulties = {
             easy: { size: 4, count: 16 },
@@ -423,10 +432,18 @@
             event.target.classList.add('active');
             
             const diffSelect = document.getElementById('difficultySelect');
+            const statsContainer = document.getElementById('statsContainer');
+            
             if (mode === 'timeattack' || mode === 'reflex') {
                 diffSelect.classList.remove('hidden');
             } else {
                 diffSelect.classList.add('hidden');
+            }
+            
+            if (mode === 'reflex') {
+                statsContainer.classList.add('reflex-mode');
+            } else {
+                statsContainer.classList.remove('reflex-mode');
             }
             
             updateLabels();
@@ -444,23 +461,33 @@
             const label1 = document.getElementById('statLabel1');
             const label2 = document.getElementById('statLabel2');
             const label3 = document.getElementById('statLabel3');
+            const reactionStat = document.getElementById('reactionStat');
+            const bestReactionStat = document.getElementById('bestReactionStat');
             
             if (currentMode === 'timeattack') {
                 label1.textContent = 'タイム';
                 label2.textContent = '残り';
                 label3.textContent = 'ベストタイム';
+                reactionStat.style.display = 'none';
+                bestReactionStat.style.display = 'none';
             } else if (currentMode === 'reflex') {
                 label1.textContent = 'スコア';
                 label2.textContent = 'ミス';
                 label3.textContent = 'ベスト';
+                reactionStat.style.display = 'block';
+                bestReactionStat.style.display = 'block';
             } else if (currentMode === 'survival') {
                 label1.textContent = 'スコア';
                 label2.textContent = 'ライフ';
                 label3.textContent = 'ベスト';
+                reactionStat.style.display = 'none';
+                bestReactionStat.style.display = 'none';
             } else {
                 label1.textContent = '潰した数';
                 label2.textContent = 'コンボ';
                 label3.textContent = '最高記録';
+                reactionStat.style.display = 'none';
+                bestReactionStat.style.display = 'none';
             }
         }
 
@@ -553,6 +580,15 @@
             const isTarget = bubble.classList.contains('target');
             
             if (isTarget) {
+                const reactionTime = (Date.now() - targetAppearTime) / 1000;
+                
+                document.getElementById('reactionTime').textContent = reactionTime.toFixed(3) + 's';
+                
+                if (reactionTime < bestReactionTime) {
+                    bestReactionTime = reactionTime;
+                    document.getElementById('bestReaction').textContent = reactionTime.toFixed(3) + 's';
+                }
+                
                 bubble.classList.remove('target');
                 bubble.classList.add('popped');
                 popCount++;
@@ -655,6 +691,7 @@
             const interval = currentMode === 'survival' ? Math.max(500, setting.interval - popCount * 10) : setting.interval;
             
             targetTimer = setTimeout(() => {
+                targetAppearTime = Date.now();
                 setRandomTargets(setting.targets);
                 
                 if (currentMode === 'survival') {
@@ -707,10 +744,7 @@
         function playPopSound() {
             try {
                 const audioCtx = getAudioContext();
-                
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
+                if (audioCtx.state === 'suspended') audioCtx.resume();
                 
                 const sound = popSounds[Math.floor(Math.random() * popSounds.length)];
                 const freqVariation = sound.freq + (Math.random() - 0.5) * 20;
@@ -728,12 +762,10 @@
                 
                 const noiseSource = audioCtx.createBufferSource();
                 noiseSource.buffer = buffer;
-                
                 const noiseFilter = audioCtx.createBiquadFilter();
                 noiseFilter.type = 'bandpass';
                 noiseFilter.frequency.value = noiseVariation;
                 noiseFilter.Q.value = 2;
-                
                 const noiseGain = audioCtx.createGain();
                 noiseGain.gain.value = sound.noiseMix;
                 
@@ -741,7 +773,6 @@
                 oscillator.type = 'sine';
                 oscillator.frequency.setValueAtTime(freqVariation, audioCtx.currentTime);
                 oscillator.frequency.exponentialRampToValueAtTime(freqVariation * 0.5, audioCtx.currentTime + sound.duration);
-                
                 const oscGain = audioCtx.createGain();
                 oscGain.gain.setValueAtTime(0.25, audioCtx.currentTime);
                 oscGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + sound.duration);
@@ -750,7 +781,6 @@
                 subOsc.type = 'sine';
                 subOsc.frequency.setValueAtTime(freqVariation * 0.6, audioCtx.currentTime);
                 subOsc.frequency.exponentialRampToValueAtTime(freqVariation * 0.3, audioCtx.currentTime + sound.duration);
-                
                 const subGain = audioCtx.createGain();
                 subGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
                 subGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + sound.duration);
@@ -775,17 +805,14 @@
                 subOsc.start(now);
                 subOsc.stop(now + sound.duration);
             } catch (error) {
-                console.error('Audio playback error:', error);
+                console.error('Audio error:', error);
             }
         }
 
         function playErrorSound() {
             try {
                 const audioCtx = getAudioContext();
-                
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
+                if (audioCtx.state === 'suspended') audioCtx.resume();
                 
                 const oscillator = audioCtx.createOscillator();
                 const gainNode = audioCtx.createGain();
@@ -803,7 +830,7 @@
                 oscillator.start(audioCtx.currentTime);
                 oscillator.stop(audioCtx.currentTime + 0.2);
             } catch (error) {
-                console.error('Audio playback error:', error);
+                console.error('Audio error:', error);
             }
         }
 
@@ -817,9 +844,13 @@
             startTime = null;
             targetBubbles = [];
             mistakes = 0;
+            targetAppearTime = 0;
+            bestReactionTime = Infinity;
             
             document.getElementById('stat1').textContent = '0';
             document.getElementById('stat2').textContent = '0';
+            document.getElementById('reactionTime').textContent = '-';
+            document.getElementById('bestReaction').textContent = '-';
             document.getElementById('result').classList.add('hidden');
             document.getElementById('actionBtn').textContent = currentMode === 'free' ? '🔄 全部復活！' : '🎮 スタート';
             
@@ -830,6 +861,32 @@
                 scheduleNextTarget();
             }
         }
+
+        function toggleFullscreen() {
+            const body = document.body;
+            
+            if (!body.classList.contains('fullscreen-mode')) {
+                body.classList.add('fullscreen-mode');
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.log('Fullscreen not supported');
+                    });
+                }
+            } else {
+                body.classList.remove('fullscreen-mode');
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(err => {
+                        console.log('Exit fullscreen not supported');
+                    });
+                }
+            }
+        }
+        
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                document.body.classList.remove('fullscreen-mode');
+            }
+        });
 
         updateLabels();
         createBubbles();
